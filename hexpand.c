@@ -40,7 +40,8 @@ int main(int argc, char *argv[]) {
 				} else if (strcmp(optarg, "sha512") == 0) {
 					type = 3;
 				} else {
-					type = -1;
+					fprintf(stderr, "%s is not a supported hash format\n", optarg);
+					exit(EXIT_FAILURE);
 				}
 				break;
 			default:
