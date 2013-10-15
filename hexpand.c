@@ -25,10 +25,7 @@ long strntol(const char* str, int length, int base) {
 	return strtol(buf, NULL, base);
 }
 
-int hash_extend(const EVP_MD *md, char *signature, char *message, int length, unsigned char* digest) {
-	EVP_MD_CTX *mdctx;
-	mdctx = EVP_MD_CTX_create();
-	EVP_DigestInit_ex(mdctx, md, NULL);
+void md5_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
 	unsigned int block_size = mdctx->digest->block_size;
 	unsigned int padding = block_size*((length+block_size-1)/block_size) - length;
 	unsigned char data[length+padding];
@@ -37,6 +34,33 @@ int hash_extend(const EVP_MD *md, char *signature, char *message, int length, un
 	((MD5_CTX *)mdctx->md_data)->B = htonl(strntol(signature+8, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->C = htonl(strntol(signature+16, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->D = htonl(strntol(signature+24, 8, 16));
+}
+
+void *extend_get_funcbyname(const char* str) {
+	if (strcmp(str, "md5") == 0) {
+		return &md5_extend;
+	} else if (strcmp(str, "sha1") == 0) {
+		return NULL;
+	} else if (strcmp(str, "sha256") == 0) {
+		return NULL;
+	} else if (strcmp(str, "sha512") == 0) {
+		return NULL;
+	} else {
+		return NULL;
+	}
+}
+
+int hash_extend(const EVP_MD *md,
+				void (*extend_function)(const EVP_MD_CTX *m, char* s, int l),
+				char *signature,
+				char *message,
+				int length,
+				unsigned char* digest) {
+	EVP_MD_CTX *mdctx;
+	unsigned int block_size;
+	mdctx = EVP_MD_CTX_create();
+	EVP_DigestInit_ex(mdctx, md, NULL);
+	(*extend_function)(mdctx, signature, length);
 	EVP_DigestUpdate(mdctx, message, strlen(message));
 	EVP_DigestFinal_ex(mdctx, digest, &block_size);
 	EVP_MD_CTX_destroy(mdctx);
@@ -46,9 +70,9 @@ int hash_extend(const EVP_MD *md, char *signature, char *message, int length, un
 int main(int argc, char *argv[]) {
 	char *signature = NULL;
 	char *message = NULL;
-	int length;
+	int length, c;
 	const EVP_MD *type = NULL;
-	int c;
+	void *func = NULL;
 
 	OpenSSL_add_all_digests();
 
@@ -66,7 +90,8 @@ int main(int argc, char *argv[]) {
 				break;
 			case 't':
 				type = EVP_get_digestbyname(optarg);
-				if (!type) {
+				func = extend_get_funcbyname(optarg);
+				if (!type || !func) {
 					fprintf(stderr, "%s is not a supported hash format\n", optarg);
 					exit(EXIT_FAILURE);
 				}
@@ -81,7 +106,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	unsigned char md_value[EVP_MAX_MD_SIZE];
-	length = hash_extend(type, signature, message, length, md_value);
+	length = hash_extend(type, func, signature, message, length, md_value);
 	for(c = 0; c < length; c++)
 		printf("%02x", md_value[c]);
 	printf("\n");
