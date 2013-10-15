@@ -1,5 +1,5 @@
 CC        = gcc
-CFLAGS    = -Wall
+CFLAGS    = -Wall -g
 LDFLAGS   = 
 
 SOURCES   = hexpand.c
@@ -13,7 +13,7 @@ LDFLAGS   += $(shell pkg-config --libs openssl)
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(SOURCES)
-	$(CC) $(SOURCES) -o $@ $(LDFLAGS)
+	$(CC) $(SOURCES) -o $@ $(LDFLAGS) $(CFLAGS)
 
 clean:
-	rm $(OBJECTS) $(EXECUTABLE)
+	rm $(EXECUTABLE)
