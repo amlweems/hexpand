@@ -1,45 +1,72 @@
 #include <ctype.h>
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <openssl/crypto.h>
+#include <openssl/md5.h>
+#include <openssl/evp.h>
 
 void help(void) {
 	fprintf(stderr, "Usage:\n"
-		"\thexpand -t type -h hash -m message\n\n"
+		"\thexpand -t type -s signature -l length -m message\n\n"
 		"Options:\n"
 		"\t-t\tthe hash algorithm for expansion (md5, sha1, sha256, or sha512\n"
-		"\t-h\tthe message digest to be expanded\n"
+		"\t-s\tthe result of the original hash function\n"
+		"\t-l\tthe length of the original message"
 		"\t-m\tthe message to be appended\n");
 	exit(EXIT_FAILURE);
 }
 
+long strntol(const char* str, int length, int base) {
+	char buf[length+1];
+	memcpy(buf, str, length);
+	buf[length] = '\0';
+	return strtol(buf, NULL, base);
+}
+
+int hash_extend(const EVP_MD *md, char *signature, char *message, int length, unsigned char* digest) {
+	EVP_MD_CTX *mdctx;
+	mdctx = EVP_MD_CTX_create();
+	EVP_DigestInit_ex(mdctx, md, NULL);
+	unsigned int block_size = mdctx->digest->block_size;
+	unsigned int padding = block_size*((length+block_size-1)/block_size) - length;
+	unsigned char data[length+padding];
+	EVP_DigestUpdate(mdctx, data, length+padding);
+	((MD5_CTX *)mdctx->md_data)->A = htonl(strntol(signature, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->B = htonl(strntol(signature+8, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->C = htonl(strntol(signature+16, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->D = htonl(strntol(signature+24, 8, 16));
+	EVP_DigestUpdate(mdctx, message, strlen(message));
+	EVP_DigestFinal_ex(mdctx, digest, &block_size);
+	EVP_MD_CTX_destroy(mdctx);
+	return block_size;
+}
+
 int main(int argc, char *argv[]) {
-	char *hash = NULL;
+	char *signature = NULL;
 	char *message = NULL;
-	int type = -1;
-	int index;
+	int length;
+	const EVP_MD *type = NULL;
 	int c;
 
-	opterr = 0;
+	OpenSSL_add_all_digests();
 
-	while ((c = getopt(argc, argv, "h:m:t:")) != -1) {
+	opterr = 0;
+	while ((c = getopt(argc, argv, "l:m:s:t:")) != -1) {
 		switch (c) {
-			case 'h':
-				hash = optarg;
+			case 'l':
+				length = atoi(optarg);
 				break;
 			case 'm':
 				message = optarg;
 				break;
+			case 's':
+				signature = optarg;
+				break;
 			case 't':
-				if (strcmp(optarg, "md5") == 0) {
-					type = 0;
-				} else if (strcmp(optarg, "sha1") == 0) {
-					type = 1;
-				} else if (strcmp(optarg, "sha256") == 0) {
-					type = 2;
-				} else if (strcmp(optarg, "sha512") == 0) {
-					type = 3;
-				} else {
+				type = EVP_get_digestbyname(optarg);
+				if (!type) {
 					fprintf(stderr, "%s is not a supported hash format\n", optarg);
 					exit(EXIT_FAILURE);
 				}
@@ -49,10 +76,15 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	if (type == -1 || message == NULL || hash == NULL) {
+	if (message == NULL || signature == NULL) {
 		help();
 	}
 
-    printf("%s %s %d\n", message, hash, type);
+	unsigned char md_value[EVP_MAX_MD_SIZE];
+	length = hash_extend(type, signature, message, length, md_value);
+	for(c = 0; c < length; c++)
+		printf("%02x", md_value[c]);
+	printf("\n");
+
 	exit(EXIT_SUCCESS);
 }
