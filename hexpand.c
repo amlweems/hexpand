@@ -18,11 +18,11 @@ void help(void) {
 	exit(EXIT_FAILURE);
 }
 
-long strntol(const char* str, int length, int base) {
+long strntoul(const char* str, int length, int base) {
 	char buf[length+1];
 	memcpy(buf, str, length);
 	buf[length] = '\0';
-	return strtol(buf, NULL, base);
+	return strtoul(buf, NULL, base);
 }
 
 void md5_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
@@ -31,10 +31,10 @@ void md5_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
 	unsigned int padding = ((length&0x3f) < 56) ? (56 - (length&0x3f)) : (120 - (length&0x3f));
 	unsigned char data[length+padding+length_bytes];
 	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
-	((MD5_CTX *)mdctx->md_data)->A = htonl(strntol(signature, 8, 16));
-	((MD5_CTX *)mdctx->md_data)->B = htonl(strntol(signature+8, 8, 16));
-	((MD5_CTX *)mdctx->md_data)->C = htonl(strntol(signature+16, 8, 16));
-	((MD5_CTX *)mdctx->md_data)->D = htonl(strntol(signature+24, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->A = htonl(strntoul(signature, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->B = htonl(strntoul(signature+8, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->C = htonl(strntoul(signature+16, 8, 16));
+	((MD5_CTX *)mdctx->md_data)->D = htonl(strntoul(signature+24, 8, 16));
 }
 
 void *extend_get_funcbyname(const char* str) {
