@@ -5,6 +5,7 @@
 #include <unistd.h>
 #include <openssl/crypto.h>
 #include <openssl/md5.h>
+#include <openssl/sha.h>
 #include <openssl/evp.h>
 
 void help(void) {
@@ -18,16 +19,37 @@ void help(void) {
 	exit(EXIT_FAILURE);
 }
 
-long strntoul(const char* str, int length, int base) {
+unsigned int strntoul(const char* str, int length, int base) {
 	char buf[length+1];
 	memcpy(buf, str, length);
 	buf[length] = '\0';
 	return strtoul(buf, NULL, base);
 }
 
+void sha1_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
+	int length_modulo = mdctx->digest->block_size;
+	int length_bytes = length_modulo/8;
+	int trunc_length = length&0x3f;
+	int padding = ((trunc_length) < (length_modulo-length_bytes))
+							? ((length_modulo-length_bytes) - trunc_length)
+							: ((2*length_modulo-length_bytes) - trunc_length);
+	unsigned char data[length+padding+length_bytes];
+	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
+
+	unsigned char* h_data = ((SHA512_CTX *)mdctx->md_data)->h;
+	int h_data_size = (mdctx->digest->md_size);
+	int sha_switch = length_modulo/16;
+	int i = 0, j = 0;
+	while (i < h_data_size) {
+		for (j = 0; j < sha_switch; j++) {
+			h_data[i+j] = strntoul(signature+2*(i+sha_switch-1-j), 2, 16);
+		}
+		i+=sha_switch;
+	}
+}
+
 void md5_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
 	unsigned int length_bytes = 8;
-	unsigned int block_size = mdctx->digest->block_size;
 	unsigned int padding = ((length&0x3f) < 56) ? (56 - (length&0x3f)) : (120 - (length&0x3f));
 	unsigned char data[length+padding+length_bytes];
 	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
@@ -41,11 +63,11 @@ void *extend_get_funcbyname(const char* str) {
 	if (strcmp(str, "md5") == 0) {
 		return &md5_extend;
 	} else if (strcmp(str, "sha1") == 0) {
-		return NULL;
+		return &sha1_extend;
 	} else if (strcmp(str, "sha256") == 0) {
-		return NULL;
+		return &sha1_extend;
 	} else if (strcmp(str, "sha512") == 0) {
-		return NULL;
+		return &sha1_extend;
 	} else {
 		return NULL;
 	}
