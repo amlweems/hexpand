@@ -26,7 +26,7 @@ unsigned int strntoul(const char* str, int length, int base) {
 	return strtoul(buf, NULL, base);
 }
 
-void sha1_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
+void sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	int length_modulo = mdctx->digest->block_size;
 	int length_bytes = length_modulo/8;
 	int trunc_length = length&0x3f;
@@ -36,7 +36,7 @@ void sha1_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
 	unsigned char data[length+padding+length_bytes];
 	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
 
-	unsigned char* h_data = ((SHA512_CTX *)mdctx->md_data)->h;
+	unsigned char* h_data = (unsigned char *)((SHA512_CTX *)mdctx->md_data)->h;
 	int h_data_size = (mdctx->digest->md_size);
 	int sha_switch = length_modulo/16;
 	int i = 0, j = 0;
@@ -48,9 +48,13 @@ void sha1_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
 	}
 }
 
-void md5_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
-	unsigned int length_bytes = 8;
-	unsigned int padding = ((length&0x3f) < 56) ? (56 - (length&0x3f)) : (120 - (length&0x3f));
+void md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
+	int length_modulo = mdctx->digest->block_size;
+	int length_bytes = length_modulo/8;
+	int trunc_length = length&0x3f;
+	int padding = ((trunc_length) < (length_modulo-length_bytes))
+							? ((length_modulo-length_bytes) - trunc_length)
+							: ((2*length_modulo-length_bytes) - trunc_length);
 	unsigned char data[length+padding+length_bytes];
 	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
 	((MD5_CTX *)mdctx->md_data)->A = htonl(strntoul(signature, 8, 16));
