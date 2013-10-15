@@ -78,7 +78,7 @@ void *extend_get_funcbyname(const char* str) {
 }
 
 int hash_extend(const EVP_MD *md,
-				void (*extend_function)(const EVP_MD_CTX *m, char* s, int l),
+				void (*extend_function)(EVP_MD_CTX *m, char* s, int l),
 				char *signature,
 				char *message,
 				int length,
