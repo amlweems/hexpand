@@ -26,10 +26,11 @@ long strntol(const char* str, int length, int base) {
 }
 
 void md5_extend(const EVP_MD_CTX *mdctx, char* signature, int length) {
+	unsigned int length_bytes = 8;
 	unsigned int block_size = mdctx->digest->block_size;
-	unsigned int padding = block_size*((length+block_size-1)/block_size) - length;
-	unsigned char data[length+padding];
-	EVP_DigestUpdate(mdctx, data, length+padding);
+	unsigned int padding = ((length&0x3f) < 56) ? (56 - (length&0x3f)) : (120 - (length&0x3f));
+	unsigned char data[length+padding+length_bytes];
+	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
 	((MD5_CTX *)mdctx->md_data)->A = htonl(strntol(signature, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->B = htonl(strntol(signature+8, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->C = htonl(strntol(signature+16, 8, 16));
