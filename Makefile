@@ -1,5 +1,5 @@
 CC        = gcc
-CFLAGS    = -Wall -g
+CFLAGS    = -Wall -ggdb
 LDFLAGS   = 
 
 SOURCES   = hexpand.c
