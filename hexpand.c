@@ -78,7 +78,7 @@ void *extend_get_funcbyname(const char* str) {
 }
 
 int hash_extend(const EVP_MD *md,
-				void (*extend_function)(EVP_MD_CTX *m, char* s, int l),
+				char* (*extend_function)(EVP_MD_CTX *m, char* s, int l),
 				char *signature,
 				char *message,
 				int length,
@@ -133,8 +133,12 @@ int main(int argc, char *argv[]) {
 	}
 
 	unsigned char md_value[EVP_MAX_MD_SIZE];
-	length = hash_extend(type, func, signature, message, length, md_value);
-	for(c = 0; c < length; c++)
+	unsigned int block_size;
+
+	block_size = hash_extend(type, func, signature, message, length, md_value);
+
+	printf("\nSignature:\t");
+	for(c = 0; c < block_size; c++)
 		printf("%02x", md_value[c]);
 	printf("\n");
 
