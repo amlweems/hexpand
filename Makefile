@@ -12,8 +12,11 @@ LDFLAGS   += $(shell pkg-config --libs openssl)
 
 all: $(SOURCES) $(EXECUTABLE)
 
-$(EXECUTABLE): $(SOURCES)
-	$(CC) $(SOURCES) -o $@ $(LDFLAGS) $(CFLAGS)
+$(EXECUTABLE): $(OBJECTS)
+	$(CC) $(OBJECTS) -o $@ $(LDFLAGS)
+
+.c.o: $(OBJECTS)
+	$(CC) -c $(CFLAGS) $< -o $@
 
 clean:
-	rm $(EXECUTABLE)
+	rm $(OBJECTS) $(EXECUTABLE)
