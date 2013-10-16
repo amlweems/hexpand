@@ -38,12 +38,12 @@ char* sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 		i+=sha_switch;
 	}
 
-	unsigned char* output = malloc((2*(padding+length_bytes)+1)*sizeof(char));
+	char* output = malloc((2*(padding+length_bytes)+1)*sizeof(char));
 	output[0] = '8';
 	output[1] = '0';
 	for (i = 1; i < 2*(padding+length_bytes); i++) output[i] = '0';
 	if (length_modulo == 128) sprintf(output+2*padding, "%032llx", htole64(8*length));
-	else sprintf(output+2*padding, "%016lx", htole64(8*length));
+	else sprintf(output+2*padding, "%016llx", htole64(8*length));
 	output[2*(padding+length_bytes)] = 0;
 
 	return output;
@@ -65,11 +65,11 @@ char* md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	((MD5_CTX *)mdctx->md_data)->D = htonl(strntoul(signature+24, 8, 16));
 
 	int i;
-	unsigned char* output = malloc((2*(padding+length_bytes)+1)*sizeof(char));
+	char* output = malloc((2*(padding+length_bytes)+1)*sizeof(char));
 	output[0] = '8';
 	output[1] = '0';
 	for (i = 1; i < 2*(padding+length_bytes); i++) output[i] = '0';
-	sprintf(output+2*padding, "%016lx", htobe64(8*length));
+	sprintf(output+2*padding, "%016llx", htobe64(8*length));
 	output[2*(padding+length_bytes)] = 0;
 	return output;
 }
