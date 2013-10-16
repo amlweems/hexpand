@@ -29,11 +29,12 @@ unsigned int strntoul(const char* str, int length, int base) {
 void sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	int length_modulo = mdctx->digest->block_size;
 	int length_bytes = length_modulo/8;
-	int trunc_length = length&0x3f;
+	int trunc_length = length%length_modulo;
 	int padding = ((trunc_length) < (length_modulo-length_bytes))
 							? ((length_modulo-length_bytes) - trunc_length)
 							: ((2*length_modulo-length_bytes) - trunc_length);
 	unsigned char data[length+padding+length_bytes];
+	memset(data, 'A', length+padding+length_bytes);
 	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
 
 	unsigned char* h_data = (unsigned char *)((SHA512_CTX *)mdctx->md_data)->h;
@@ -51,11 +52,12 @@ void sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 void md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	int length_modulo = mdctx->digest->block_size;
 	int length_bytes = length_modulo/8;
-	int trunc_length = length&0x3f;
+	int trunc_length = length%length_modulo;
 	int padding = ((trunc_length) < (length_modulo-length_bytes))
 							? ((length_modulo-length_bytes) - trunc_length)
 							: ((2*length_modulo-length_bytes) - trunc_length);
 	unsigned char data[length+padding+length_bytes];
+	memset(data, 'A', length+padding+length_bytes);
 	EVP_DigestUpdate(mdctx, data, length+padding+length_bytes);
 	((MD5_CTX *)mdctx->md_data)->A = htonl(strntoul(signature, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->B = htonl(strntoul(signature+8, 8, 16));
