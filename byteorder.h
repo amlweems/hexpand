@@ -4,6 +4,9 @@
  * It is public domain.
  * */
 
+#ifndef __BYTE_ORDER_H__
+#define __BYTE_ORDER_H__
+
 #ifndef __APPLE__
 
 #include <endian.h>
@@ -28,3 +31,5 @@
 #define le64toh(x) OSSwapLittleToHostInt64(x)
 
 #endif 	/* __APPLE__ */
+
+#endif  /* __BYTE_ORDER_H__ */
