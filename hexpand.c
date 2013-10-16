@@ -7,6 +7,7 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include "byteorder.h"
 
 void help(void) {
 	fprintf(stderr, "Usage:\n"
@@ -26,7 +27,7 @@ unsigned int strntoul(const char* str, int length, int base) {
 	return strtoul(buf, NULL, base);
 }
 
-void sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
+char* sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	int length_modulo = mdctx->digest->block_size;
 	int length_bytes = length_modulo/8;
 	int trunc_length = length%length_modulo;
@@ -47,12 +48,22 @@ void sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 		}
 		i+=sha_switch;
 	}
+
+	unsigned char* output = malloc((2*(padding+length_bytes)+1)*sizeof(char));
+	output[0] = '8';
+	output[1] = '0';
+	for (i = 1; i < 2*(padding+length_bytes); i++) output[i] = '0';
+	if (length_modulo == 128) sprintf(output+2*padding, "%032llx", htole64(8*length));
+	else sprintf(output+2*padding, "%016lx", htole64(8*length));
+	output[2*(padding+length_bytes)] = 0;
+
+	return output;
 }
 
-void md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
+char* md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	int length_modulo = mdctx->digest->block_size;
 	int length_bytes = length_modulo/8;
-	int trunc_length = length%length_modulo;
+	int trunc_length = length&0x3f;
 	int padding = ((trunc_length) < (length_modulo-length_bytes))
 							? ((length_modulo-length_bytes) - trunc_length)
 							: ((2*length_modulo-length_bytes) - trunc_length);
@@ -63,6 +74,15 @@ void md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	((MD5_CTX *)mdctx->md_data)->B = htonl(strntoul(signature+8, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->C = htonl(strntoul(signature+16, 8, 16));
 	((MD5_CTX *)mdctx->md_data)->D = htonl(strntoul(signature+24, 8, 16));
+
+	int i;
+	unsigned char* output = malloc((2*(padding+length_bytes)+1)*sizeof(char));
+	output[0] = '8';
+	output[1] = '0';
+	for (i = 1; i < 2*(padding+length_bytes); i++) output[i] = '0';
+	sprintf(output+2*padding, "%016lx", htobe64(8*length));
+	output[2*(padding+length_bytes)] = 0;
+	return output;
 }
 
 void *extend_get_funcbyname(const char* str) {
@@ -84,12 +104,13 @@ int hash_extend(const EVP_MD *md,
 				char *signature,
 				char *message,
 				int length,
-				unsigned char* digest) {
+				unsigned char* digest,
+				unsigned char** output) {
 	EVP_MD_CTX *mdctx;
 	unsigned int block_size;
 	mdctx = EVP_MD_CTX_create();
 	EVP_DigestInit_ex(mdctx, md, NULL);
-	(*extend_function)(mdctx, signature, length);
+	*output = (*extend_function)(mdctx, signature, length);
 	EVP_DigestUpdate(mdctx, message, strlen(message));
 	EVP_DigestFinal_ex(mdctx, digest, &block_size);
 	EVP_MD_CTX_destroy(mdctx);
@@ -135,14 +156,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	unsigned char md_value[EVP_MAX_MD_SIZE];
+	unsigned char* output;
 	unsigned int block_size;
 
-	block_size = hash_extend(type, func, signature, message, length, md_value);
+	block_size = hash_extend(type, func, signature, message, length, md_value, &output);
+	printf("Append (hex):\t%s", output);
+	for(c = 0; c < strlen(message); c++)
+		printf("%02x", message[c]);
 
 	printf("\nSignature:\t");
 	for(c = 0; c < block_size; c++)
 		printf("%02x", md_value[c]);
 	printf("\n");
 
+	free(output);
 	exit(EXIT_SUCCESS);
 }
