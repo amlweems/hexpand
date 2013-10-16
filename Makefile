@@ -2,7 +2,7 @@ CC        = gcc
 CFLAGS    = -Wall -ggdb
 LDFLAGS   = 
 
-SOURCES   = hexpand.c
+SOURCES   = hexpand.c main.c
 OBJECTS   = ${SOURCES:.c=.o}
 
 EXECUTABLE = hexpand
