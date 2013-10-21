@@ -21,10 +21,42 @@ void help(void) {
 	exit(EXIT_FAILURE);
 }
 
+struct test_case {
+	char *type;
+	char *sig;
+	char *message;
+	int length;
+	char *expected;
+};
+
 void test(void) {
-	int success = 0;
-	// test cases go here
-	
+	int success = 1;
+	int i = 0;
+	struct test_case t[] = {
+		{"md5", "4697843037d962f62a5a429e611e0f5f", "b", 40, "d4ec08ed634b530a1c396d80060729ec"},
+		{"sha1", "a56559418dc7908ce5f0b24b05c78e055cb863dc", "b", 40, "b7c89b959b72273e2dc2f29dc52d65a152f2a9ef"},
+		{"sha256", "e33cdf9c7f7120b98e8c78408953e07f2ecd183006b5606df349b4c212acf43e", "b", 40, "1e86cd29eb59ce048221e7053682f508ace11246135d7d21089f6f74fd35b0a1"},
+		{"sha512", "e411795f8b2a38c99a7b86c888f84c9b26d0f47f2c086d71a2c9282caf6a898820e2c1f3dc1fa45b20178da40f6cb7e4479d3d7155845ed7a4b8698b398f3d0c", "b", 40, "d5e39d5274db7d1ec920fefeb23f9f785eaffb4d3e1e8a7ecd59332863c2598c4c4431616eaba4fc1c752e4d0e8884f6f3cf8a4fc124dd1f026d83c398a2af80"},
+		{0, 0, 0, 0}
+	};
+	while (t[i].type != 0) {
+		const EVP_MD *type = EVP_get_digestbyname(t[i].type);
+		void *func = extend_get_funcbyname(t[i].type);
+		int c;
+		unsigned char md_value[EVP_MAX_MD_SIZE];
+		unsigned char* tmp;
+		unsigned int block_size = hash_extend(type, func, t[i].sig, t[i].message, t[i].length, md_value, &tmp);
+		unsigned char output[2*block_size];
+		for(c = 0; c < block_size; c++) {
+			sprintf(output+2*c, "%02x", md_value[c]);
+		}
+		if (strcmp(output, t[i].expected) != 0) {
+			printf("Test %i failed...\n", i);
+			success &= 0;
+		}
+		i++;
+	}
+
 	if (success) {
 		printf("All tests passed!\n");
 		exit(EXIT_SUCCESS);
