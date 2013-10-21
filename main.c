@@ -3,19 +3,37 @@
 #include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <assert.h>
+#include <getopt.h>
 #include <openssl/evp.h>
 #include "hexpand.h"
 
 void help(void) {
 	fprintf(stderr, "Usage:\n"
-		"\thexpand -t type -s signature -l length -m message\n\n"
+		"\thexpand -t type -s signature -l length -m message\n"
+		"\thexpand --test\n\n"
 		"Options:\n"
-		"\t-t\tthe hash algorithm for expansion (md5, sha1, sha256, or sha512\n"
-		"\t-s\tthe result of the original hash function\n"
-		"\t-l\tthe length of the original message"
-		"\t-m\tthe message to be appended\n");
+		"\t-t --type\tthe hash algorithm for expansion (md5, sha1, sha256, or sha512\n"
+		"\t-s --sig\tthe result of the original hash function\n"
+		"\t-l --length\tthe length of the original message\n"
+		"\t-m --message\tthe message to be appended\n"
+		"\t--test\t\truns a set of test cases\n");
 	exit(EXIT_FAILURE);
 }
+
+void test(void) {
+	int success = 0;
+	// test cases go here
+	
+	if (success) {
+		printf("All tests passed!\n");
+		exit(EXIT_SUCCESS);
+	} else {
+		exit(EXIT_FAILURE);
+	}
+}
+
+static int test_flag = 0;
 
 int main(int argc, char *argv[]) {
 	char *signature = NULL;
@@ -26,9 +44,20 @@ int main(int argc, char *argv[]) {
 
 	OpenSSL_add_all_digests();
 
+	static struct option long_options[] = {
+		{"test",    no_argument,       &test_flag, 1},
+		{"type",    required_argument, 0, 't'},
+		{"sig",     required_argument, 0, 's'},
+		{"length",  required_argument, 0, 'l'},
+		{"message", required_argument, 0, 'm'},
+		{0, 0, 0, 0}
+	};
+	int optind = 0;
 	opterr = 0;
-	while ((c = getopt(argc, argv, "l:m:s:t:")) != -1) {
+	while ((c = getopt_long(argc, argv, "l:m:s:t:", long_options, &optind)) != -1) {
 		switch (c) {
+			case 0:
+				break;
 			case 'l':
 				length = atoi(optarg);
 				break;
@@ -49,6 +78,10 @@ int main(int argc, char *argv[]) {
 			default:
 				help();
 		}
+	}
+
+	if (test_flag) {
+		test();
 	}
 
 	if (message == NULL || signature == NULL) {
