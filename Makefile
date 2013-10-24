@@ -18,5 +18,8 @@ $(EXECUTABLE): $(OBJECTS)
 .c.o: $(OBJECTS)
 	$(CC) -c $(CFLAGS) $< -o $@
 
+test: $(EXECUTABLE)
+	./$(EXECUTABLE) --test
+
 clean:
 	rm $(OBJECTS) $(EXECUTABLE)
