@@ -1,5 +1,5 @@
 CC        = clang
-CFLAGS    = -Wall -ggdb
+CFLAGS    = -Wall -Werror -Wno-deprecated-declarations
 LDFLAGS   = 
 
 SOURCES   = hexpand.c main.c

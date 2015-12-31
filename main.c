@@ -46,7 +46,7 @@ void test(void) {
 		unsigned char md_value[EVP_MAX_MD_SIZE];
 		unsigned char* tmp;
 		unsigned int block_size = hash_extend(type, func, t[i].sig, t[i].message, t[i].length, md_value, &tmp);
-		unsigned char output[2*block_size];
+		char output[2*block_size];
 		for(c = 0; c < block_size; c++) {
 			sprintf(output+2*c, "%02x", md_value[c]);
 		}

@@ -94,7 +94,7 @@ int hash_extend(const EVP_MD *md,
 				char *message,
 				int length,
 				unsigned char* digest,
-				unsigned char** output) {
+				char** output) {
 	EVP_MD_CTX *mdctx;
 	unsigned int block_size;
 	mdctx = EVP_MD_CTX_create();
