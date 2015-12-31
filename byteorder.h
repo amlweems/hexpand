@@ -9,6 +9,7 @@
 
 #ifndef __APPLE__
 
+#define _BSD_SOURCE 1
 #include <endian.h>
 
 #else

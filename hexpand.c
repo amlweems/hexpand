@@ -7,6 +7,8 @@
 #include <openssl/md5.h>
 #include <openssl/sha.h>
 #include <openssl/evp.h>
+#include <arpa/inet.h>
+#include <inttypes.h>
 #include "byteorder.h"
 
 unsigned int strntoul(const char* str, int length, int base) {
@@ -42,8 +44,8 @@ char* sha1_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	output[0] = '8';
 	output[1] = '0';
 	for (i = 1; i < 2*(padding+length_bytes); i++) output[i] = '0';
-	if (length_modulo == 128) sprintf(output+2*padding, "%032llx", htole64(8*length));
-	else sprintf(output+2*padding, "%016llx", htole64(8*length));
+	if (length_modulo == 128) sprintf(output+2*padding, "%032" PRIx32 , htole64(8*length));
+	else sprintf(output+2*padding, "%016" PRIx32 , htole64(8*length));
 	output[2*(padding+length_bytes)] = 0;
 
 	return output;
@@ -69,7 +71,7 @@ char* md5_extend(EVP_MD_CTX *mdctx, char* signature, int length) {
 	output[0] = '8';
 	output[1] = '0';
 	for (i = 1; i < 2*(padding+length_bytes); i++) output[i] = '0';
-	sprintf(output+2*padding, "%016llx", htobe64(8*length));
+	sprintf(output+2*padding, "%016" PRIx64 , htobe64(8*length));
 	output[2*(padding+length_bytes)] = 0;
 	return output;
 }
